@@ -1,10 +1,11 @@
+import java.util.ArrayList;
+import java.util.List;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.firefox.FirefoxDriver;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
 
 /**
  * Created by michael on 4/9/2014.
@@ -18,11 +19,40 @@ import java.util.List;
  *  this will work for now though at least as  a backup or main thing if needed
  */
 public class PageParser {
+	
+	private static WebDriver driver;
     public static void main(String [] args)
     {
-        WebDriver driver = new FirefoxDriver();
+    	
+    	
+    	DesiredCapabilities dCaps;
+    	dCaps = new DesiredCapabilities();
+    	dCaps.setJavascriptEnabled(true);
+    	dCaps.setCapability("takesScreenshot",false);
+        driver = new PhantomJSDriver(dCaps);
+        
+        for(int i=0;i<1000;i++)
+        {
+    	ImgurImage img = ExtractImage("http://imgur.com/gallery/WMCTG");
+    
+    	for(String word : img.comments)
+    		System.out.println(i+") "+word);
+        }
+    	
+    	
+    	 driver.quit();
 
-    driver.get("http://imgur.com/gallery/WMCTG");
+
+    }
+    
+    
+    public static ImgurImage ExtractImage(String url)
+    {
+    	
+    
+
+    
+    driver.get(url);
 
     List<WebElement> elements = driver.findElements(By.cssSelector(".comment span"));
 
@@ -51,9 +81,24 @@ public class PageParser {
     for (String w : wordArray)
         System.out.println(w);
 
-
-    driver.quit();
-
+        
+   
+    
+    
+    
+    ImgurImage image = new ImgurImage();
+    image.uri = "somthing";
+    image.comments =wordArray;
+    
+    return image;
     }
+    
+    
 
+}
+
+class ImgurImage
+{
+	public String uri;
+	public String[] comments;
 }
