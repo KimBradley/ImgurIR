@@ -1,7 +1,10 @@
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.phantomjs.PhantomJSDriver;
@@ -21,15 +24,49 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 public class PageParser {
 	
 	private static WebDriver driver;
-    public static void main(String [] args)
+    public static void main(String [] args) throws Exception
     {
-    	
     	
     	DesiredCapabilities dCaps;
     	dCaps = new DesiredCapabilities();
     	dCaps.setJavascriptEnabled(true);
     	dCaps.setCapability("takesScreenshot",false);
+    	
+    	//to get phantom driver to work download phantomjs
+    	//add to path
+    	//start phantomjs in driver mode (phantomjs --webdriver= 8910)
         driver = new PhantomJSDriver(dCaps);
+        
+    	Queue<String> urlQueue = new LinkedList<String>();
+    	
+    	driver.get("http://imgur.com/gallery");
+
+    	
+    	JavascriptExecutor jse = (JavascriptExecutor)driver;
+    	
+    	//at 10 was 537
+    	//at 50 was 912
+    	//hard to get past aorund 907 need to try clicking link at this point
+    	for(int i=0;i<100;i++)
+    	{
+    		jse.executeScript("window.scrollTo(0, document.body.scrollHeight);", "");
+    		Thread.sleep(1000);
+    	}
+    	List<WebElement> elements = driver.findElements(By.cssSelector(".posts img"));
+    	
+    	
+    
+    	for(int i=0;i<elements.size();i++)
+    	{
+    		System.out.println(i+") "+elements.get(i).getAttribute("src"));
+    	}
+    	
+    	
+    	
+    	
+    	
+    	/*
+    	
         
         for(int i=0;i<1000;i++)
         {
@@ -37,7 +74,10 @@ public class PageParser {
     
     	for(String word : img.comments)
     		System.out.println(i+") "+word);
+    		
+    	
         }
+        */
     	
     	
     	 driver.quit();
