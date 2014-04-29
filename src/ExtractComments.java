@@ -7,12 +7,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import ExtractionApi.Comments;
 import ExtractionApi.Gallery;
 import ExtractionApi.ImageItem;
-import Processing.DocVector;
+import ExtractionApi.TimeStamp;
 import Processing.Term;
 
 import com.google.gson.Gson;
@@ -24,30 +28,18 @@ public class ExtractComments
 {
 	static ArrayList<ImageItem> imageItems = new ArrayList<ImageItem>();
 	
-	public static void main(String [] args)
+	public static void main(String [] args) throws Exception
 	{
+		
+	
+		printRemainingCredits();
+
 		
 		try
 		{
 			printRemainingCredits();
 		
-		Vector<String> v = new Vector<String>();
-		v.add("test");
-		v.add("something");
-		v.add("test");
-		v.add("this");
-		v.add("words");
-		v.add("add");
-		v.add("this");
-		
-		
-		
-		ImageItem i = new ImageItem("url.com",v);
-		ImageItem j = new ImageItem("other.com",v);
-		imageItems.add(i);
-		imageItems.add(j);
-		
-		
+
 		
 	
 		//testComments();
@@ -71,24 +63,11 @@ public class ExtractComments
 		
 		addToDB();
 			System.out.println(imageItems);
+	
 		
     }
 	
-	public static void testComments() throws Exception
-	{
-		Gson gson = new Gson();
-		
-		URL url = new URL("https://api.imgur.com/3/gallery/");
-		HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-		connection.setRequestMethod("GET");
-		connection.setRequestProperty("Authorization","Client-ID b85db05245a02ce");
-		connection.connect();
-		BufferedReader input =new BufferedReader(new InputStreamReader( connection.getInputStream()));
-		String resp = input.readLine();;
-		//Comments comments = gson.fromJson(resp,Comments.class);
-		System.out.println(resp);
-		connection.disconnect();
-	}
+	
 	public static void printRemainingCredits() throws Exception
 	{
 		//https://api.imgur.com/3/credits
@@ -119,17 +98,28 @@ public class ExtractComments
 			connection.setRequestProperty("Authorization","Client-ID b85db05245a02ce");
 			connection.connect();
 		
-			
+			if(Integer.parseInt(connection.getHeaderField("X-RateLimit-UserRemaining"))<10)
+			{
+				long epoch = Long.parseLong(connection.getHeaderField("X-RateLimit-UserReset"));
+				Date resetDate = new Date(epoch*1000);
+				Date currentDate = new Date();
+				System.out.println(resetDate.getTime()-currentDate.getTime());
+				long timeToWait =resetDate.getTime()-currentDate.getTime()+300000;
+				System.out.println("UserRemaining: "+connection.getHeaderField("X-RateLimit-UserRemaining"));
+				System.out.println("UserReset: "+connection.getHeaderField("X-RateLimit-UserReset"));
+				System.out.println("ClientRemaining: "+connection.getHeaderField("X-RateLimit-ClientRemaining"));
+				
+				System.out.println("Waiting for "+ timeToWait/1000+" seconds");
+				Thread.sleep(timeToWait);
+			}
 		
 			BufferedReader input =new BufferedReader(new InputStreamReader( connection.getInputStream()));
 			String resp = input.readLine();
 			
-			//System.out.println(resp);
 			Gson gson = new Gson();
 			Gallery s=  gson.fromJson(resp, Gallery.class);
 		
 			extractImage(s);	
-				//System.out.println(s);
 			connection.disconnect();
 	}
 	public static void extractImage(Gallery gal) throws Exception
@@ -139,6 +129,7 @@ public class ExtractComments
 		for(int i=0;i<gal.data.length;i++)
 		{
 			String imageUrl = gal.data[i].link;
+			String galleryUrl = "imgur.com/gallery/"+gal.data[i].id;
 			Vector<String> wordList = new Vector<String>();
 
 			Gson gson = new Gson();
@@ -170,7 +161,7 @@ public class ExtractComments
 			connection.disconnect();
 			
 			
-			ImageItem item = new ImageItem(imageUrl, wordList);
+			ImageItem item = new ImageItem(imageUrl,galleryUrl, wordList);
 			
 			System.out.println(item.imageUrl);
 			System.out.println(item.words);
@@ -190,19 +181,21 @@ public class ExtractComments
 	    try
 	    {
 	    	conn = DriverManager.getConnection("jdbc:mysql://localhost/imgurir?user=imgurir&password=imgurir");
-	    	st=conn.prepareStatement("INSERT INTO wordsearch (word,link,frequency,normalizedFrequency) VALUES (?,?,?,?)"
+	    	st=conn.prepareStatement("INSERT INTO wordsearch (word,link,frequency,normalizedFrequency, gallerylink) VALUES (?,?,?,?,?)"
 	    			+ " ON DUPLICATE KEY UPDATE frequency=?, normalizedFrequency=?");
 	    	
 	    	for(ImageItem item: imageItems)
 	    	{
 	    		st.setString(2, item.imageUrl);
+	    		st.setString(5,item.imgurLink);
 	    		for(Term t: item.words)
 	    		{
 	    			st.setString(1, t.getWord());
 	    			st.setInt(3, t.getFreq());
 	    			st.setDouble(4, t.getNormalizedFreq());
-	    			st.setInt(5,t.getFreq());
-	    			st.setDouble(6,t.getNormalizedFreq());
+	    			
+	    			st.setInt(6,t.getFreq());
+	    			st.setDouble(7,t.getNormalizedFreq());
 	    			st.executeUpdate();
 	    		}
 	    		

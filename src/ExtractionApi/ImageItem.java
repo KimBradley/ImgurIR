@@ -7,10 +7,11 @@ import Processing.Term;
 
 public class ImageItem {
 	public String imageUrl;
+	public String imgurLink;
 	public Vector<Term> words;
 
 	
-	public ImageItem(String imageUrl, Vector<String>words)
+	public ImageItem(String imageUrl, String imgurLink,Vector<String>words)
 	{
 		this.imageUrl = imageUrl;
 		
