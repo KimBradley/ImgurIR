@@ -23,9 +23,3 @@ public class Comment {
 	
 }
 
-class Comments
-{
- public Comment[] data;
- public boolean success;
- public int status;
-}

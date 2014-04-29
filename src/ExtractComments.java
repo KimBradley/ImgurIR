@@ -1,9 +1,19 @@
-package ExtractionApi;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Vector;
+
+import ExtractionApi.Comments;
+import ExtractionApi.Gallery;
+import ExtractionApi.ImageItem;
+import Processing.DocVector;
+import Processing.Term;
 
 import com.google.gson.Gson;
 
@@ -14,21 +24,54 @@ public class ExtractComments
 {
 	static ArrayList<ImageItem> imageItems = new ArrayList<ImageItem>();
 	
-	public static void main(String [] args) throws Exception
+	public static void main(String [] args)
 	{
-		testComments();
-		printRemainingCredits();
-		/*
+		
+		try
+		{
+			printRemainingCredits();
+		
+		Vector<String> v = new Vector<String>();
+		v.add("test");
+		v.add("something");
+		v.add("test");
+		v.add("this");
+		v.add("words");
+		v.add("add");
+		v.add("this");
+		
+		
+		
+		ImageItem i = new ImageItem("url.com",v);
+		ImageItem j = new ImageItem("other.com",v);
+		imageItems.add(i);
+		imageItems.add(j);
+		
+		
+		
+	
+		//testComments();
+		//printRemainingCredits();
+		
 		for(int page=0;page<1;page++)
 		{
-			System.out.println("Page: "+page);
-			getGallery("https://api.imgur.com/3/gallery/hot/viral/"+page+".json");
+			//System.out.println("Page: "+page);
+			getGallery("https://api.imgur.com/3/gallery/hot/viral/"+0+".json");
 			
 		}
-		System.out.println("Items: "+imageItems.size());
+		//System.out.println("Items: "+imageItems.size());
 		
-		printRemainingCredits();
-		*/
+		//printRemainingCredits();
+		}
+		catch(Exception e)
+		{
+			System.err.println(e.getMessage());
+		}
+		System.out.println("Updating db...");
+		
+		addToDB();
+			System.out.println(imageItems);
+		
     }
 	
 	public static void testComments() throws Exception
@@ -96,14 +139,8 @@ public class ExtractComments
 		for(int i=0;i<gal.data.length;i++)
 		{
 			String imageUrl = gal.data[i].link;
-			ArrayList<String> wordList = new ArrayList<String>();
+			Vector<String> wordList = new Vector<String>();
 
-	
-		
-			
-		
-
-			
 			Gson gson = new Gson();
 			
 			URL url = new URL(" https://api.imgur.com/3/gallery/image/"+gal.data[i].id+"/comments");
@@ -116,7 +153,6 @@ public class ExtractComments
 			Comments comments = gson.fromJson(resp,Comments.class);
 			
 			String[] tokens;
-			
 			try{
 				for(int j=0;j<comments.data.length;j++)
 				{
@@ -143,5 +179,40 @@ public class ExtractComments
 			
 		}
 		System.out.println(imageItems.size());
+	}
+	
+
+	public static void addToDB()
+	{
+		Connection conn = null;
+	    PreparedStatement st = null;
+	    
+	    try
+	    {
+	    	conn = DriverManager.getConnection("jdbc:mysql://localhost/imgurir?user=imgurir&password=imgurir");
+	    	st=conn.prepareStatement("INSERT INTO wordsearch (word,link,frequency,normalizedFrequency) VALUES (?,?,?,?)"
+	    			+ " ON DUPLICATE KEY UPDATE frequency=?, normalizedFrequency=?");
+	    	
+	    	for(ImageItem item: imageItems)
+	    	{
+	    		st.setString(2, item.imageUrl);
+	    		for(Term t: item.words)
+	    		{
+	    			st.setString(1, t.getWord());
+	    			st.setInt(3, t.getFreq());
+	    			st.setDouble(4, t.getNormalizedFreq());
+	    			st.setInt(5,t.getFreq());
+	    			st.setDouble(6,t.getNormalizedFreq());
+	    			st.executeUpdate();
+	    		}
+	    		
+	    	}
+	    	conn.close();
+	    }
+	    catch(Exception e)
+	    {
+	    	System.err.println(e.getMessage());
+	    }
+	    
 	}
 }
