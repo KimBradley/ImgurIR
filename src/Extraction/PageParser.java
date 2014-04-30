@@ -1,16 +1,17 @@
 package Extraction;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+import java.util.Vector;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
+
+import ExtractionApi.DatabaseHandler;
+import ExtractionApi.ImageItem;
+import Processing.TokenizedDoc;
 
 /**
  * Created by michael on 4/9/2014.
@@ -25,8 +26,9 @@ import org.openqa.selenium.remote.DesiredCapabilities;
  */
 public class PageParser {
 	
+	//private static WebDriverWait wait;
 	private static WebDriver driver;
-    public static void main(String [] args) throws Exception
+    public static void main(String [] args)
     {
     	
     	DesiredCapabilities dCaps;
@@ -37,110 +39,91 @@ public class PageParser {
     	//to get phantom driver to work download phantomjs
     	//add to path
     	//start phantomjs in driver mode (phantomjs --webdriver= 8910)
-        driver = new PhantomJSDriver(dCaps);
-        
-    	Queue<String> urlQueue = new LinkedList<String>();
-    	
-    	driver.get("http://imgur.com/gallery");
+       // driver = new PhantomJSDriver(dCaps);
+    	driver = new FirefoxDriver();
 
-    	
-    	JavascriptExecutor jse = (JavascriptExecutor)driver;
-    	
-    	//at 10 was 537
-    	//at 50 was 912
-    	//hard to get past aorund 907 need to try clicking link at this point
-    	for(int i=0;i<60;i++)
-    	{
-    		jse.executeScript("window.scrollTo(0, document.body.scrollHeight);", "");
-    		Thread.sleep(100);
-    	}
-    	List<WebElement> elements = driver.findElements(By.cssSelector(".posts img"));
-    	
-    	
-    
-    	for(int i=0;i<elements.size();i++)
-    	{
-    		System.out.println(i+") "+elements.get(i).getAttribute("src"));
-    	}
-    	
-    	
-    	
-    	
-    	
-    	/*
-    	
         
-        for(int i=0;i<1000;i++)
-        {
-    	ImgurImage img = ExtractImage("http://imgur.com/gallery/WMCTG");
-    
-    	for(String word : img.comments)
-    		System.out.println(i+") "+word);
+        
+        String url = "http://imgur.com/gallery/UhyCzI4";
+        driver.get(url);  
+    	ImageItem img = ExtractImage();
+    	DatabaseHandler.addToDB(img);
+    	
+    	//for(int i=0;i<10;i++)
+    	while(true)
+    	{
     		
-    	
-        }
-        */
-    	
-    	
-    	 driver.quit();
+    		
+    		List<WebElement> navNext = driver.findElements(By.cssSelector(".navNext"));
+
+    		System.out.println(navNext.size());
+    		navNext.get(navNext.size()-1).click();
+    		img= ExtractImage();
+    		DatabaseHandler.addToDB(img);
+    	}	
+    	// driver.quit();
 
 
     }
     
     
-    public static ImgurImage ExtractImage(String url)
+    public static ImageItem ExtractImage()
     {
     	
-    
+    	WebElement picUrl = driver.findElement(By.cssSelector("div#image img"));
+    	Vector<String> words = new Vector<String>();
+    	List<WebElement> commentElements = driver.findElements(By.cssSelector(".comment .caption div.usertext.textbox.first1"));
 
-    
-    driver.get(url);
-
-    List<WebElement> elements = driver.findElements(By.cssSelector(".comment span"));
-
-
-    ArrayList<String> words = new ArrayList<String>();
-
-    //this was a loop i figured out that would get allt he comments
-    //there might be a better way using a selector or somthing to get
-    //it from the elements in the first place
-
-    for (int i = 3; i < elements.size() - 7; i += 5) {
-        String comment = elements.get(i).getText();
-        for (String word : comment.split("\\W+")) {
-            word = word.replaceAll("[^A-Za-z]+", "");
-            if (!word.equals(""))
-                words.add(word.toLowerCase());
-        }
-    }
-
-    //System.out.println(words);
-
-
-    //just making sure i can convert to array
-    String wordArray[] = new String[words.size()];
-    wordArray = words.toArray(wordArray);
-    for (String w : wordArray)
-        System.out.println(w);
-
-        
-   
-    
-    
-    
-    ImgurImage image = new ImgurImage();
-    image.uri = "somthing";
-    image.comments =wordArray;
-    
-    return image;
+    	for(WebElement el: commentElements)
+    	{
+    		//problems using []() in tokenizeddoc
+    		TokenizedDoc td= new TokenizedDoc(el.getText(),"!?,;.?","stopwords.txt");
+    		for(String word: (Vector<String>)td.getTokens())
+    		{
+    			words.add(word.toLowerCase());
+    		}
+    	}
+    	ImageItem imageItem = new ImageItem(picUrl.getAttribute("src"),driver.getCurrentUrl(), words);
+    	System.out.println(imageItem);
+    	return imageItem;
+    	
     }
     
     
 
 }
 
-class ImgurImage
+
+
+//wait = new WebDriverWait(driver,10);
+/*
+Queue<String> urlQueue = new LinkedList<String>();
+
+driver.get("http://imgur.com/gallery");
+
+
+JavascriptExecutor jse = (JavascriptExecutor)driver;
+
+//at 10 was 537
+//at 50 was 912
+//hard to get past aorund 907 need to try clicking link at this point
+for(int i=0;i<60;i++)
 {
-	public String uri;
-	public String[] comments;
+	jse.executeScript("window.scrollTo(0, document.body.scrollHeight);", "");
+	Thread.sleep(100);
 }
+List<WebElement> elements = driver.findElements(By.cssSelector(".posts img"));
+
+
+
+for(int i=0;i<elements.size();i++)
+{
+	System.out.println(i+") "+elements.get(i).getAttribute("src"));
+}
+
+
+
+
+*/
+
+

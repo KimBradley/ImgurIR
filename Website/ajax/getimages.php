@@ -12,12 +12,13 @@ if(mysqli_connect_errno())
 
 $stemmer = new PorterStemmer();
 $word = $stemmer->stem($word);
-$query = sprintf("SELECT link FROM wordsearch WHERE word='%s'", $word);
+$query = sprintf("SELECT link, gallerylink FROM wordsearch WHERE word='%s'", $word);
 $result = mysqli_query($con,$query);
+
 
 while($row=mysqli_fetch_array($result))
 {
-    echo '<img src="'.$row["link"].'"/>';
+    echo '<a href="'.$row["gallerylink"].'"><img src="'.$row["link"].'"/></a>';
 }
 mysqli_close($con);
 ?>
