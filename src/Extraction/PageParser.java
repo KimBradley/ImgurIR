@@ -6,7 +6,7 @@ import java.util.Vector;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.phantomjs.PhantomJSDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import ExtractionApi.DatabaseHandler;
@@ -28,7 +28,7 @@ public class PageParser {
 	
 	//private static WebDriverWait wait;
 	private static WebDriver driver;
-    public static void main(String [] args)
+    public static void main(String [] args) throws InterruptedException 
     {
     	
     	DesiredCapabilities dCaps;
@@ -36,16 +36,15 @@ public class PageParser {
     	dCaps.setJavascriptEnabled(true);
     	dCaps.setCapability("takesScreenshot",false);
     	
-    	//to get phantom driver to work download phantomjs
-    	//add to path
-    	//start phantomjs in driver mode (phantomjs --webdriver= 8910)
-       // driver = new PhantomJSDriver(dCaps);
-    	driver = new FirefoxDriver();
+   
+        driver = new PhantomJSDriver(dCaps);
+    	//driver = new FirefoxDriver();
 
         
-        
-        String url = "http://imgur.com/gallery/UhyCzI4";
+        System.out.println("Starting program");
+        String url = "http://imgur.com/gallery/6TvIuik";
         driver.get(url);  
+       
     	ImageItem img = ExtractImage();
     	DatabaseHandler.addToDB(img);
     	
@@ -55,9 +54,8 @@ public class PageParser {
     		
     		
     		List<WebElement> navNext = driver.findElements(By.cssSelector(".navNext"));
-
-    		System.out.println(navNext.size());
     		navNext.get(navNext.size()-1).click();
+    		driver.get(driver.getCurrentUrl());
     		img= ExtractImage();
     		DatabaseHandler.addToDB(img);
     	}	
@@ -69,7 +67,10 @@ public class PageParser {
     
     public static ImageItem ExtractImage()
     {
-    	
+    	try
+    	{
+    	System.out.println(driver.getCurrentUrl());
+    	ImageItem imageItem=null;
     	WebElement picUrl = driver.findElement(By.cssSelector("div#image img"));
     	Vector<String> words = new Vector<String>();
     	List<WebElement> commentElements = driver.findElements(By.cssSelector(".comment .caption div.usertext.textbox.first1"));
@@ -77,15 +78,35 @@ public class PageParser {
     	for(WebElement el: commentElements)
     	{
     		//problems using []() in tokenizeddoc
+    		//System.out.println(el.getText());
+    		
     		TokenizedDoc td= new TokenizedDoc(el.getText(),"!?,;.?","stopwords.txt");
     		for(String word: (Vector<String>)td.getTokens())
     		{
     			words.add(word.toLowerCase());
     		}
     	}
-    	ImageItem imageItem = new ImageItem(picUrl.getAttribute("src"),driver.getCurrentUrl(), words);
-    	System.out.println(imageItem);
+    	if(words.size()==0)
+    	{
+    		System.out.println("Words=0");
+ 
+    	}
+    	else
+    	{
+    		imageItem = new ImageItem(picUrl.getAttribute("src"),driver.getCurrentUrl(), words);
+    		//System.out.println(imageItem);
+    	}
+    	
+    	
+    	
+    	
     	return imageItem;
+    	} 
+    	catch(Exception e)
+    	{
+    		System.out.println("Skipping because: "+e.getMessage());
+    		return null;
+    	}
     	
     }
     
