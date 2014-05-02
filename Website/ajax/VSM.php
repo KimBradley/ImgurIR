@@ -14,10 +14,13 @@ if(mysqli_connect_errno())
 
     $stemmer = new PorterStemmer();
    
-
-    foreach($words as $word)
-        $word = $stemmer->stem($word);
-
+    for($i=0;$i<sizeof($words);$i++)
+    //foreacsth($words as $word)
+    {
+        $words[$i]= $stemmer->stem($words[$i]);
+       // $word = $stemmer->stem($word);
+     
+    }
     $query = "SELECT * FROM wordsearch WHERE link In (SELECT link FROM wordsearch WHERE ";
     foreach($words as $word)
     {
@@ -29,7 +32,8 @@ if(mysqli_connect_errno())
 
     $query.=") ORDER BY gallerylink,word";
     $result = mysqli_query($con,$query);
-
+   
+    //echo $query."<br/>";
 /*
 while($row=mysqli_fetch_array($result))
 {
@@ -61,6 +65,7 @@ $frequencyArray = array();
 
 foreach($words as $word)
 {
+    
     if(!isset($frequencyArray[$word]))
     {
         $frequencyArray[$word]=0;
@@ -89,14 +94,17 @@ foreach($normalizedArray  as $word=>$val)
 fclose($fileQueryDoc);
 
 exec("java VSMranker output.txt queryDoc.txt 30 > result.txt");
-
+//echo exec("java VSMranker output.txt queryDoc.txt 30");
 $text = file_get_contents("result.txt");
 
 $split = explode(' ',$text);
 
 for($i=1;$i<sizeof($split);$i+=3)
 {
-    echo '<a href="http://'.$split[$i].'"><img src="'.$split[$i+1].'"/></a>';
+    if(strpos($split[$i+1],"/a/")!=FALSE)
+        echo '<a href="http://'.$split[$i].'"><img src="album.jpg"/></a>';
+    else
+        echo '<a href="http://'.$split[$i].'"><img src="'.$split[$i+1].'"/></a>';
 }
-
+echo "done";
 ?>

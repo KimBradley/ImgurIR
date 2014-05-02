@@ -8,6 +8,7 @@
             $(document).ready(function () {
                 $("#searchform").submit(function (e) {
                     e.preventDefault();
+                    $("#output").html("Loading...");
                     $.get("ajax/VSM.php", $("#searchform").serialize(),
                     function (resp) {
                         $("#output").html(resp);
