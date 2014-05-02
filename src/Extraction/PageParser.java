@@ -14,6 +14,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 
 import ExtractionApi.DatabaseHandler;
 import ExtractionApi.ImageItem;
+import Processing.Stemmer;
 import Processing.TokenizedDoc;
 
 /**
@@ -34,6 +35,8 @@ public class PageParser {
 	private static Vector<String> stopWords;
     public static void main(String [] args) throws InterruptedException, FileNotFoundException
     {
+    	
+    	
     	stopWords = new Vector<String>();
     	File file = new File("stopwords.txt");
     	Scanner stopwordScanner = new Scanner(file);
@@ -85,7 +88,7 @@ public class PageParser {
     	WebElement picUrl = driver.findElement(By.cssSelector("div#image img"));
     	Vector<String> words = new Vector<String>();
     	List<WebElement> commentElements = driver.findElements(By.cssSelector(".comment .caption div.usertext.textbox.first1 span"));
-
+    	Stemmer stemmer = new Stemmer();
     	for(WebElement el: commentElements)
     	{
     		//problems using []() in tokenizeddoc
@@ -94,8 +97,14 @@ public class PageParser {
     		TokenizedDoc td= new TokenizedDoc(el.getText(),"!?,;.?","stopwords.txt");
     		for(String word: (Vector<String>)td.getTokens())
     		{
-    			words.add(word.toLowerCase());
-    			words.removeAll(stopWords);
+    			if(!stopWords.contains(word.toLowerCase()))
+    			{
+    				stemmer.add(word.toLowerCase().toCharArray(),word.length());
+    				stemmer.stem();
+    				stemmer.toString();
+    				words.add(stemmer.toString());
+    			}
+   
     		}
     	}
     	if(words.size()==0)
