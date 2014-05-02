@@ -1,0 +1,76 @@
+#
+set database = /smart/indexed_colls/time
+set lib = /smart/package/lib
+
+cat > index_spec << EOF1
+database $database
+current_ctype   0
+  ctype_storage  v
+  ctype_stop  common_words
+  ctype_stem  full
+current_section  i
+  section_parsing_method  begin_doc
+current_section  a
+  section_parsing_method  full
+  token_word  0
+  token_proper_noun 0
+current_section  o
+  section_parsing_method  end_doc
+title_section a
+doc_weight_tf   none
+doc_weight_coll none
+doc_weight_norm none
+query_weight_tf   none
+query_weight_coll none
+query_weight_norm none
+EOF1
+
+cat > ret_spec << EOF2
+database $database
+EOF2
+
+cat > fdbk_spec << EOF3
+database $database
+EOF3
+
+cat > qry_spec << EOF4
+\*TEXT : Text of query for Time Magazine, World Affairs, 1963
+EOF4
+
+cp /dev/null qry_spec.help
+
+smart_create $database << EOF
+20011
+index_spec
+ret_spec
+pre_parser
+qry_spec
+$lib/common_words
+
+EOF
+echo $cwd/doc.text | smart_enter $database
+echo query.text | ./pre_parser | creat_index index_spec -n 1 \
+           | look_text index_spec query_coll $database/tf_query
+cp fdbk_spec $database
+rel_to_rr $database/qrels <qrels.text
+
+mv $database/doc $database/tf_doc
+mv $database/doc.var $database/tf_doc.var
+
+#cd $database
+#cnvrt_vec_wt dict tf_doc N_doc atc
+#cnvrt_vec_wt -d tf_doc dict tf_query N_query atc
+#
+#vec_to_inv N_doc N_inv
+#
+#ln N_doc doc
+#ln N_doc.var doc.var
+#ln N_query query
+#ln N_query.var query.var
+#
+#/bin/rm -f inv inv.var
+#ln N_inv inv
+#ln N_inv.var inv.var
+
+
+time
