@@ -1,12 +1,15 @@
 package Extraction;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Vector;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import ExtractionApi.DatabaseHandler;
@@ -28,21 +31,30 @@ public class PageParser {
 	
 	//private static WebDriverWait wait;
 	private static WebDriver driver;
-    public static void main(String [] args) throws InterruptedException 
+	private static Vector<String> stopWords;
+    public static void main(String [] args) throws InterruptedException, FileNotFoundException
     {
+    	stopWords = new Vector<String>();
+    	File file = new File("stopwords.txt");
+    	Scanner stopwordScanner = new Scanner(file);
+    	while(stopwordScanner.hasNext())
+    	{
+    		stopWords.add(stopwordScanner.nextLine());
+    	}
     	
+    	stopwordScanner.close();
     	DesiredCapabilities dCaps;
     	dCaps = new DesiredCapabilities();
     	dCaps.setJavascriptEnabled(true);
     	dCaps.setCapability("takesScreenshot",false);
     	
    
-        driver = new PhantomJSDriver(dCaps);
-    	//driver = new FirefoxDriver();
+        //driver = new PhantomJSDriver(dCaps);
+    	driver = new FirefoxDriver();
 
         
         System.out.println("Starting program");
-        String url = "http://imgur.com/gallery/6TvIuik";
+        String url = "http://imgur.com/gallery/SKVjVlv";
         driver.get(url);  
        
     	ImageItem img = ExtractImage();
@@ -67,13 +79,12 @@ public class PageParser {
     
     public static ImageItem ExtractImage()
     {
-    	try
-    	{
+    
     	System.out.println(driver.getCurrentUrl());
     	ImageItem imageItem=null;
     	WebElement picUrl = driver.findElement(By.cssSelector("div#image img"));
     	Vector<String> words = new Vector<String>();
-    	List<WebElement> commentElements = driver.findElements(By.cssSelector(".comment .caption div.usertext.textbox.first1"));
+    	List<WebElement> commentElements = driver.findElements(By.cssSelector(".comment .caption div.usertext.textbox.first1 span"));
 
     	for(WebElement el: commentElements)
     	{
@@ -84,6 +95,7 @@ public class PageParser {
     		for(String word: (Vector<String>)td.getTokens())
     		{
     			words.add(word.toLowerCase());
+    			words.removeAll(stopWords);
     		}
     	}
     	if(words.size()==0)
@@ -101,12 +113,8 @@ public class PageParser {
     	
     	
     	return imageItem;
-    	} 
-    	catch(Exception e)
-    	{
-    		System.out.println("Skipping because: "+e.getMessage());
-    		return null;
-    	}
+    	
+
     	
     }
     

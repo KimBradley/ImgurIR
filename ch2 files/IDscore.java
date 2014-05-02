@@ -15,8 +15,8 @@ public class IDscore
     public String toString()
     {
         DecimalFormat df = new DecimalFormat();
-        df.setMaximumFractionDigits(2);
-        df.setMinimumFractionDigits(2);
+        df.setMaximumFractionDigits(50);
+        df.setMinimumFractionDigits(10);
         df.setDecimalSeparatorAlwaysShown(true);
         return ID + " " + df.format(score);
     }

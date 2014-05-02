@@ -27,7 +27,7 @@ if(mysqli_connect_errno())
     $query = substr($query, 0, -3);
 
 
-    $query.=") ORDER BY gallerylink";
+    $query.=") ORDER BY gallerylink,word";
     $result = mysqli_query($con,$query);
 
 /*
@@ -46,7 +46,7 @@ while($row=mysqli_fetch_array($result))
     if($currLink!= $row["gallerylink"])
     {
         $currLink = $row["gallerylink"];
-        fwrite($file,".I ".$currLink."\r\n");
+        fwrite($file,".I ".$currLink." ".$row["link"]."\r\n");
     }
 
     fwrite($file,$row["word"]." ".$row["frequency"]." ".$row["normalizedFrequency"]."\r\n");
@@ -55,7 +55,6 @@ while($row=mysqli_fetch_array($result))
 }
 
 fclose($file);
-echo "done writing";
 
 //find frequency of query words and normalize
 $frequencyArray = array();
@@ -75,8 +74,10 @@ $max = max($normalizedArray);
 foreach($normalizedArray as $key=>$value)
 {
     $normalizedArray[$key]=$value/$max;
-   echo  $word." ".$frequencyArray[$word]." ".$normalizedArray[$word]."<br/>";
+  // echo  $word." ".$frequencyArray[$word]." ".$normalizedArray[$word]."<br/>";
 }
+
+ksort($normalizedArray);
 $fileQueryDoc = fopen("queryDoc.txt","w") or die("Unable to open query doc?");
 fwrite($fileQueryDoc,".I query\r\n");
 foreach($normalizedArray  as $word=>$val)
@@ -87,6 +88,15 @@ foreach($normalizedArray  as $word=>$val)
 
 fclose($fileQueryDoc);
 
-echo exec("java HelloWorld");
+exec("java VSMranker output.txt queryDoc.txt 30 > result.txt");
+
+$text = file_get_contents("result.txt");
+
+$split = explode(' ',$text);
+
+for($i=1;$i<sizeof($split);$i+=3)
+{
+    echo '<a href="http://'.$split[$i].'"><img src="'.$split[$i+1].'"/></a>';
+}
 
 ?>

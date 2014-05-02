@@ -1,23 +1,20 @@
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.Scanner;
 import java.util.Vector;
 
 import ExtractionApi.Comments;
+import ExtractionApi.DatabaseHandler;
 import ExtractionApi.Gallery;
 import ExtractionApi.ImageItem;
-import ExtractionApi.TimeStamp;
-import Processing.Term;
+import Processing.Stemmer;
+import Processing.TokenizedDoc;
 
 import com.google.gson.Gson;
 
@@ -27,10 +24,19 @@ import com.google.gson.Gson;
 public class ExtractComments
 {
 	static ArrayList<ImageItem> imageItems = new ArrayList<ImageItem>();
-	
+	private static Vector<String> stopWords;
 	public static void main(String [] args) throws Exception
 	{
 		
+    	stopWords = new Vector<String>();
+    	File file = new File("stopwords.txt");
+    	Scanner stopwordScanner = new Scanner(file);
+    	while(stopwordScanner.hasNext())
+    	{
+    		stopWords.add(stopwordScanner.nextLine());
+    	}
+    	
+    	stopwordScanner.close();
 	
 		printRemainingCredits();
 
@@ -45,10 +51,12 @@ public class ExtractComments
 		//testComments();
 		//printRemainingCredits();
 		
-		for(int page=0;page<1;page++)
+		for(int page=1;page<100;page++)
 		{
 			//System.out.println("Page: "+page);
-			getGallery("https://api.imgur.com/3/gallery/hot/viral/"+0+".json");
+			System.out.println("\nPage: "+page+"\n ");
+			getGallery("https://api.imgur.com/3/gallery/hot/viral/"+page+".json");
+			
 			
 		}
 		//System.out.println("Items: "+imageItems.size());
@@ -61,7 +69,7 @@ public class ExtractComments
 		}
 		System.out.println("Updating db...");
 		
-		addToDB();
+		//addToDB();
 			System.out.println(imageItems);
 	
 		
@@ -143,14 +151,23 @@ public class ExtractComments
 			String resp = input.readLine();;
 			Comments comments = gson.fromJson(resp,Comments.class);
 			
-			String[] tokens;
+			Stemmer stemmer = new Stemmer();
 			try{
 				for(int j=0;j<comments.data.length;j++)
 				{
-					tokens = comments.data[j].comment.split("\\W+");
 				
-					for(String word:tokens)
-						wordList.add(word);
+					TokenizedDoc td= new TokenizedDoc(comments.data[j].comment,"!?,;.?","stopwords.txt");
+		    		for(String word: (Vector<String>)td.getTokens())
+					{
+		    			if(!stopWords.contains(word))
+		    			{
+		    				stemmer.add(word.toLowerCase().toCharArray(),word.length());
+		    				stemmer.stem();
+		    				stemmer.toString();
+		    				wordList.add(stemmer.toString());
+		    			}
+					}
+		    	
 				}
 			}
 			catch(NullPointerException e)
@@ -165,47 +182,13 @@ public class ExtractComments
 			
 			System.out.println(item.imageUrl);
 			System.out.println(item.words);
-			
-			imageItems.add(item);
+			DatabaseHandler.addToDB(item);
+			//imageItems.add(item);
 			
 		}
 		System.out.println(imageItems.size());
 	}
 	
 
-	public static void addToDB()
-	{
-		Connection conn = null;
-	    PreparedStatement st = null;
-	    
-	    try
-	    {
-	    	conn = DriverManager.getConnection("jdbc:mysql://localhost/imgurir?user=imgurir&password=imgurir");
-	    	st=conn.prepareStatement("INSERT INTO wordsearch (word,link,frequency,normalizedFrequency, gallerylink) VALUES (?,?,?,?,?)"
-	    			+ " ON DUPLICATE KEY UPDATE frequency=?, normalizedFrequency=?");
-	    	
-	    	for(ImageItem item: imageItems)
-	    	{
-	    		st.setString(2, item.imageUrl);
-	    		st.setString(5,item.imgurLink);
-	    		for(Term t: item.words)
-	    		{
-	    			st.setString(1, t.getWord());
-	    			st.setInt(3, t.getFreq());
-	    			st.setDouble(4, t.getNormalizedFreq());
-	    			
-	    			st.setInt(6,t.getFreq());
-	    			st.setDouble(7,t.getNormalizedFreq());
-	    			st.executeUpdate();
-	    		}
-	    		
-	    	}
-	    	conn.close();
-	    }
-	    catch(Exception e)
-	    {
-	    	System.err.println(e.getMessage());
-	    }
-	    
-	}
+
 }
